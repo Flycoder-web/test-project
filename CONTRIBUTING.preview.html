@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grape Contributing Guide（本地预览）</title>
+<style>
+:root { color-scheme: light; }
+body { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px;
+       font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC",
+             "PingFang SC", "Microsoft YaHei", sans-serif;
+       color: #1f2328; background: #fff; }
+h1, h2, h3 { line-height: 1.25; margin-top: 1.6em; padding-bottom: .3em; }
+h1 { font-size: 2em; border-bottom: 1px solid #d8dee4; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d8dee4; }
+h3 { font-size: 1.2em; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; }
+table { border-collapse: collapse; margin: 1em 0; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: 6px 13px; }
+th { background: #f6f8fa; }
+tr:nth-child(2n) td { background: #f6f8fa; }
+code { background: #f6f8fa; padding: .2em .4em; border-radius: 6px;
+       font: 85%/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+pre { background: #f6f8fa; padding: 14px 16px; border-radius: 8px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 1em 0; padding: 0 1em; color: #59636e; border-left: .25em solid #d0d7de; }
+hr { border: 0; border-top: 1px solid #d8dee4; margin: 2em 0; }
+details { margin: 1em 0; }
+summary { cursor: pointer; font-weight: 600; }
+.banner { background: #fff8c5; border: 1px solid #d4a72c; border-radius: 8px;
+          padding: 10px 14px; font-size: 14px; margin-bottom: 24px; }
+</style></head><body>
+<div class="banner">本地预览：所有图片已内嵌（data URI），与发布用的 Markdown 源文件内容一致。
+源文件：<code>CONTRIBUTING.md</code></div>
+<h1 id="grape-contributing-guide">Grape Contributing Guide</h1>
+<blockquote>
+<p>Language: <strong>English</strong> (current) · <a href="CONTRIBUTING.zh.md">中文</a></p>
+<p>Grape — AI Native DevOps: turning any Git project into an autonomous, "AI-driven, human-gated" development workflow.
+This document defines collaboration, branching, release and quality standards. <strong>Read it before you submit — five minutes is enough to get going.</strong></p>
+</blockquote>
+<p>Quick navigation</p>
+<table>
+<thead>
+<tr>
+<th>What you want to do</th>
+<th>Where to look</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your first contribution (newcomer)</td>
+<td><a href="#16-newcomer-path-good-first-issue">Newcomer path</a></td>
+</tr>
+<tr>
+<td>Report a bug / suggest an idea</td>
+<td><a href="#3-issues--discuss-first">Issues — discuss first</a></td>
+</tr>
+<tr>
+<td>Start writing code</td>
+<td><a href="#2-branch-model">Branch model</a> → <a href="#4-contribution-flow-from-issue-to-merge">Contribution flow</a></td>
+</tr>
+<tr>
+<td>How to write commit messages</td>
+<td><a href="#5-commit-message-convention">Commit message convention</a></td>
+</tr>
+<tr>
+<td>How to run the tests</td>
+<td><a href="#7-code-quality-requirements">Quality requirements</a></td>
+</tr>
+<tr>
+<td>Make it into Friday's release</td>
+<td><a href="#9-friday-release-and-tagging">Friday release flow</a></td>
+</tr>
+<tr>
+<td>Urgent defect</td>
+<td><a href="#10-emergency-hotfix-channel">Hotfix channel</a></td>
+</tr>
+<tr>
+<td>I don't write code</td>
+<td><a href="#174-contributing-without-writing-code">Contributing without code</a></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="1-workflow-overview">1. Workflow overview</h2>
+<pre><code>main (trunk) ──────────────────────────▶ always releasable, only accepts release merges
+   │                             ▲              ▲
+   │ branch off every Monday     │ merged back  │ merged back
+   ▼                             │ (MR + no-ff) │ (MR + no-ff)
+ weekly-01 ────────────────▶ weekly-02 ───────▶ ...
+   │  ▲                         │  ▲
+   │  │ MR merges (feat/fix)    │  │
+   ▼  │                         ▼  │
+ feat/xxx  fix/xxx  docs/xxx  refactor/xxx   chore/xxx
+   (branched off the weekly target, one task per branch)
+   │
+   ───────────────── hotfix/xxx (urgent: targets main + current weekly)
+</code></pre>
+<ul>
+<li><strong>Each iteration ships one weekly version</strong>; the test environment rolls forward with the weekly branch.</li>
+<li>Features never go straight into <code>main</code>: they land in the current <code>weekly-xx</code> first, then get merged back into <code>main</code> and tagged on Friday.</li>
+<li>Conflicts, reviews and release volume are all concentrated into "once a week" — a stable team rhythm that still works for open collaboration.</li>
+</ul>
+<h2 id="2-branch-model">2. Branch model</h2>
+<h3 id="21-branches-at-a-glance">2.1 Branches at a glance</h3>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Naming</th>
+<th>Lifetime</th>
+<th>Who merges</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trunk</td>
+<td><code>main</code></td>
+<td>Permanent</td>
+<td>Maintainers</td>
+<td>The only publicly releasable branch, always stable; receives the weekly merge on Friday</td>
+</tr>
+<tr>
+<td>Weekly iteration</td>
+<td><code>weekly-01</code>, <code>weekly-02</code>…</td>
+<td>One week</td>
+<td>Maintainers</td>
+<td>Collection point for the iteration's features; deployment source for the test environment</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td><code>feat/xxx</code></td>
+<td>Short (≤ 1 week)</td>
+<td>Created by contributors</td>
+<td>New functionality, branched off the current weekly</td>
+</tr>
+<tr>
+<td>Fix</td>
+<td><code>fix/xxx</code></td>
+<td>Short</td>
+<td>Created by contributors</td>
+<td>Defect fixes</td>
+</tr>
+<tr>
+<td>Refactor</td>
+<td><code>refactor/xxx</code></td>
+<td>Short</td>
+<td>Created by contributors</td>
+<td>No behaviour change</td>
+</tr>
+<tr>
+<td>Docs</td>
+<td><code>docs/xxx</code></td>
+<td>Short</td>
+<td>Created by contributors</td>
+<td>Documentation, examples</td>
+</tr>
+<tr>
+<td>Chore</td>
+<td><code>chore/xxx</code></td>
+<td>Short</td>
+<td>Created by contributors</td>
+<td>Build, toolchain, dependencies</td>
+</tr>
+<tr>
+<td>Hotfix</td>
+<td><code>hotfix/xxx</code></td>
+<td>Very short</td>
+<td>Maintainers</td>
+<td>Critical production/test defects, no waiting for Friday</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-core-rules">2.2 Core rules</h3>
+<ul>
+<li><strong>Feature branches come off the current <code>weekly-xx</code></strong>, and <strong>the merge request targets <code>weekly-x</code></strong> (not <code>main</code>); maintainers merge it back into <code>main</code> on Friday. Fewer conflicts, cleaner review, a controllable merge-back.</li>
+<li><strong><code>main</code> and <code>weekly-xx</code> are protected</strong>: direct pushes are not allowed — merge request + review + green CI is required (see <a href="#112-permissions-and-protections">Permissions and protection</a>).</li>
+<li><strong>Keep branches small</strong>: one issue / one responsibility per branch, mergeable within a week; do not start stuffing large features in after Monday.</li>
+<li>Branch names use <code>prefix/short-description</code> (lowercase kebab-case), e.g. <code>feat/issue-37-repo-template</code>.</li>
+</ul>
+<h3 id="23-weekly-iteration-timeline-recommended-may-float">2.3 Weekly iteration timeline (recommended, may float)</h3>
+<table>
+<thead>
+<tr>
+<th>When</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monday 09:30</td>
+<td>Branch <code>weekly-0X</code> off the latest <code>main</code> HEAD (X = week number, e.g. <code>weekly-01</code>); push a placeholder/empty commit or the first merge point</td>
+</tr>
+<tr>
+<td>Monday–Thursday</td>
+<td>Contributor feature MRs → <code>weekly-0X</code>; every push triggers CI plus an automatic test-environment deployment and verification</td>
+</tr>
+<tr>
+<td>Friday FREEZE point (e.g. 15:00)</td>
+<td>The current weekly freezes: only approved fixes and hotfixes; no new features</td>
+</tr>
+<tr>
+<td>Friday</td>
+<td>Merge <code>weekly-0X</code> → <code>main</code> (via MR), tag (<code>weekly-0X</code> + semver), generate the changelog, publish release notes</td>
+</tr>
+<tr>
+<td>Next Monday</td>
+<td>Branch <code>weekly-0(X+1)</code> off the new main; the <code>weekly-0X</code> branch can be archived (its tag is kept forever)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-issues-discuss-first">3. Issues — discuss first</h2>
+<p><strong>Open an issue and agree on the direction before writing code</strong>, so the work isn't wasted.</p>
+<ul>
+<li><strong>Bug report</strong>: state the environment (OS / Python version), reproduction steps, expected vs actual behaviour, and the relevant logs.</li>
+<li><strong>Feature request</strong>: describe the use case, the expected behaviour and, optionally, an implementation sketch. Try to pin it to a specific Skill / Agent / module.</li>
+<li>Suggested labels: <code>bug</code>, <code>feature</code>, <code>good-first-issue</code>, <code>help-wanted</code>, <code>p3</code> (low), <code>p2</code>, <code>p1</code> (high).</li>
+<li>Claim the issue or leave a comment before you start, so nobody duplicates your work.</li>
+</ul>
+<h2 id="4-contribution-flow-from-issue-to-merge">4. Contribution flow (from issue to merge)</h2>
+<pre><code>Issue confirmed → claim → branch off the current weekly → create feature branch → develop + commit
+   → test locally → push → open MR against weekly-0X → review (human + QA Agent) → CI green → merged → merged back on Friday
+</code></pre>
+<ol>
+<li><strong>Branch off <code>weekly-0X</code></strong>:
+   <code>bash
+   git checkout weekly-01
+   git pull origin weekly-01
+   git checkout -b feat/issue-37-repo-template</code></li>
+<li><strong>Develop + commit</strong> (convention in [§5]).</li>
+<li><strong>Run the local quality checks</strong> (commands in [§7]) and make sure everything passes.</li>
+<li><strong>Push and open an MR</strong> with <strong>the current <code>weekly-0X</code></strong> as the target branch, using the [§6] template: what changed, why, how it was tested, and the linked issue number.</li>
+<li><strong>Wait for review</strong>:
+   - A project owner (the owner listed in <code>MAINTAINER</code>, currently <code>@Jason7602</code>) or a maintainer approves;
+   - Grape's own <strong>QA Agent assists the review</strong> (runs tests and static checks automatically) — it is an assistant, not a replacement for human judgement;
+   - If changes are requested, keep committing on the <strong>same branch</strong>; <strong>do not modify the original MR after it has been merged</strong>.</li>
+<li><strong>Green CI + approved review</strong> → a maintainer squashes/merges it into <code>weekly-0X</code>.</li>
+<li>After the merge, the test environment deploys that weekly branch automatically — <strong>contributors are encouraged to self-test there</strong> (checklist in [§8]).</li>
+</ol>
+<blockquote>
+<p>The only difference between collaborators and outside contributors is "branch vs fork": outside contributors fork, then open the MR from <code>your-username/fork-branch</code> → <code>weekly-0X</code>. The flow is identical.</p>
+</blockquote>
+<h2 id="5-commit-message-convention">5. Commit message convention</h2>
+<p><strong>Commit messages are written in English</strong>, following <strong>Conventional Commits</strong> and referencing the issue:</p>
+<pre><code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;
+
+&lt;body explaining what / why&gt;
+</code></pre>
+<ul>
+<li>type: <code>feat</code>, <code>fix</code>, <code>refactor</code>, <code>docs</code>, <code>chore</code>, <code>style</code>, <code>test</code>, <code>perf</code>, <code>security</code>.</li>
+<li>scope is optional (module/backend); the subject is all lowercase, concise, starting with a verb.</li>
+<li><strong>Reference the issue</strong> (recommended): <code>fix(issue-37): fix template auth</code>.</li>
+<li>One commit does one thing; no "while I'm here" changes.</li>
+</ul>
+<pre><code class="language-bash"># example
+git commit -s -m &quot;feat(skill): add xxx skill description
+
+Closes #37&quot;
+</code></pre>
+<ul>
+<li><strong>DCO sign-off</strong>: every commit ends with <code>Signed-off-by</code>:
+  <code>Signed-off-by: Your Name &lt;your.email@example.com&gt;</code>
+  (<code>git commit -s</code> adds it automatically; see [§17] for what it means.)</li>
+</ul>
+<p>Good / bad examples:</p>
+<pre><code># good
+feat(skill): add xxx skill description
+fix(issue-37): fix template auth bug
+docs: add bilingual README
+</code></pre>
+<pre><code class="language-bash"># bad
+# &quot;update stuff&quot;, one huge commit mixing UI+DB+docs, no issue reference, no description
+# non-English commit message
+</code></pre>
+<h2 id="6-mr-description-template">6. MR description template</h2>
+<pre><code class="language-markdown">## Linked issue
+Closes #37
+
+## What changed
+- Brief description…
+
+## Testing
+- [ ] Local pytest fully green (commands in §7)
+- [ ] New/changed code is covered
+- [ ] Verified in the test environment (after the weekly branch was deployed)
+
+## Impact / risk
+- Skills / Agents / configuration involved…
+</code></pre>
+<h2 id="7-code-quality-requirements">7. Code quality requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unit tests</td>
+<td>New/changed code must ship with tests</td>
+</tr>
+<tr>
+<td>Test command</td>
+<td><code>python -m pytest tests/ -v</code> (skips <code>e2e_ui</code> by default for determinism; run the <code>e2e_ui</code> scenarios with <code>python -m pytest tests/ -m e2e_ui</code>)</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td><code>python -m pytest tests/ --cov</code>; the current gate is <strong>line coverage ≥ 70%</strong> (<code>.coveragerc</code> <code>fail_under=70</code>, to be raised once stable)</td>
+</tr>
+<tr>
+<td>Code style</td>
+<td>Match the surrounding code; no unused dependencies; never commit secrets (tokens/credentials belong in <code>.env</code> or config files, which are gitignored)</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>Do not weaken authentication/authorization; never concatenate external input into SQL or shell commands (mind the permissions on <code>.env.example</code> and <code>configs</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>CI runs automatically on every MR push: lint + unit tests + coverage gate + build.</p>
+<h2 id="8-test-environment-weekly-branches">8. Test environment (weekly branches)</h2>
+<ul>
+<li>Every push to <code>weekly-0X</code> triggers an automatic build and deployment to the test environment.</li>
+<li>The test environment tracks only that week's <code>weekly-0X</code>, <strong>never feature branches</strong>, so what you test is exactly the set that will be released.</li>
+<li>Verification checklist (regression):</li>
+<li>[ ] The multi-agent pipeline runs end to end (VOD→Issue→Coding→QA→SRE)</li>
+<li>[ ] The key paths of all three entry points (GitCode Webhook / Feishu / WebUI)</li>
+<li>[ ] End-to-end scenarios for the features added in this version</li>
+<li>[ ] Impact of data migrations / configuration changes (if any)</li>
+</ul>
+<h2 id="9-friday-release-and-tagging">9. Friday release and tagging</h2>
+<p>Friday is the release window for the current weekly, executed by a maintainer or the release duty owner:</p>
+<ol>
+<li><strong>FREEZE</strong>: <code>weekly-0X</code> freezes; no new features (only approved fixes and hotfixes).</li>
+<li><strong>Merge back into the trunk</strong>: merge <code>weekly-0X</code> into <code>main</code>. A <strong>merge commit (<code>--no-ff</code>) is recommended</strong>, noting <code>weekly-0X → main</code> and the MR number so the release history stays traceable; CI runs once more on <code>main</code> afterwards (regression gate).</li>
+<li><strong>Tag</strong> (so the tag matches what was merged into <code>main</code>):
+   <code>bash
+   git checkout weekly-01
+   git tag weekly-01                  # weekly version number, same content as the main merge result
+   git tag -a v0.4.0 -m "weekly-01 release"   # recommended: also tag a semantic version for external references
+   git push origin weekly-01 --tags</code>
+   - <code>weekly-0X</code> is the internal release number; <strong>point a SemVer <code>vX.Y.Z</code> tag at the same commit for public use</strong> (production and third parties should rely on SemVer).</li>
+<li><strong>Release artifacts</strong>: generate the changelog with Grape's <code>changelog-gen</code> Skill (or by hand); write release notes; link the issues folded into this iteration.</li>
+<li><strong>Archive</strong>: archive that week's branch (<code>git branch -d weekly-01</code>) and keep the tag forever; <strong>never delete a tag</strong>.</li>
+</ol>
+<h2 id="10-emergency-hotfix-channel">10. Emergency hotfix channel</h2>
+<p>Critical defects (testing blocked / production risk) <strong>do not wait for Friday</strong>:</p>
+<pre><code>main ──────────────────── ... 
+   └             └
+   └ hotfix/xxx  (branched off main)
+   └  → fix → MR targets main directly (+ the current weekly-0X in parallel, so the test environment stays aligned)
+   └  → CI green → merge immediately → patch tag (e.g. v0.4.1)
+</code></pre>
+<ol>
+<li>Branch <code>hotfix/xxx</code> off <code>main</code> and open the MR <strong>against <code>main</code></strong>.</li>
+<li><strong>Also cherry-pick it into the current <code>weekly-0X</code></strong> (or open a small second MR) so the test environment gets the fix too.</li>
+<li>Tag the patch version (<code>v0.4.1</code>) right after merging into main — don't drag it to Friday.</li>
+</ol>
+<h2 id="11-permissions-protection-and-automation">11. Permissions, protection and automation</h2>
+<h3 id="111-default-responsibilities">11.1 Default responsibilities</h3>
+<table>
+<thead>
+<tr>
+<th>Owner</th>
+<th>Responsibilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maintainer (owner, see MAINTAINER)</td>
+<td>Review/merge MRs, weekly merge-back, tagging, releases, branch protection</td>
+</tr>
+<tr>
+<td>Contributor</td>
+<td>Feature/fix development, self-testing in the test environment</td>
+</tr>
+<tr>
+<td>QA Agent (Grape)</td>
+<td>Automatic assistance on every MR: tests, static checks, security scanning</td>
+</tr>
+</tbody>
+</table>
+<h3 id="112-permissions-and-protections">11.2 Permissions and protections</h3>
+<ul>
+<li><code>main</code>, <code>weekly-0X</code>: <strong>direct pushes forbidden</strong>; a review (≥ 1 approval, the module owner among MAINTAINER may finalize) and green CI are required before a maintainer merges.</li>
+<li><code>feat/*</code>, <code>fix/*</code> etc.: contributors own them, but merges always go through an MR.</li>
+<li>Force-push and deletion of <code>main</code>/<code>weekly</code> branches are disabled platform-wide.</li>
+</ul>
+<h3 id="113-recommended-automation">11.3 Recommended automation</h3>
+<ul>
+<li>CI: MR push triggers lint + unit tests + coverage + build; a <code>weekly-0X</code> push additionally deploys the test environment.</li>
+<li>Dependency-update bot (if wanted): disable auto-merge; review DCO/semantics by hand before merging, so failures don't spike mid-week.</li>
+<li>Tagging / releases: CI can tag and generate the changelog automatically after the merge-back into main (GitCode CI / GitLab CI both work).</li>
+</ul>
+<h2 id="12-code-of-conduct">12. Code of conduct</h2>
+<p>We adopt the <a href="http://www.contributor-covenant.org/version/2/1/code_of_conduct/">Contributor Covenant 2.1</a> (see <code>CODE_OF_CONDUCT.md</code> in the repository). The essentials:</p>
+<ul>
+<li>Be friendly, respectful and stay on the technical merits; personal attacks, harassment and discrimination are not tolerated.</li>
+<li>Disagreements are settled by public discussion plus maintainer arbitration; the maintainers have the final say on merge disputes.</li>
+<li>Report violations privately to a maintainer — do not start a public flame war.</li>
+</ul>
+<h2 id="13-security-vulnerability-disclosure">13. Security vulnerability disclosure</h2>
+<p><strong>Never report a security vulnerability in a public issue</strong> (it puts everyone at risk):</p>
+<ul>
+<li>Contact a maintainer (the owner listed in <code>MAINTAINER</code>) through GitCode <strong>direct message</strong>, or follow the guidance in <code>SECURITY.md</code>.</li>
+<li>Include the impact, trigger conditions, reproduction and a suggested fix; <strong>do not publish a PoC</strong>.</li>
+<li>Maintainers will assess and fix it without leaking details (in the next hotfix / weekly release) and credit you in the release notes.</li>
+</ul>
+<h2 id="14-community-support-and-communication">14. Community support and communication</h2>
+<ul>
+<li>Main repository: gitcode.com/grape-dev/grape ; issues and discussions live in the repository's issue tracker.</li>
+<li>Related repositories: official skills <code>grape-dev/grape-skills</code>, project templates <code>grape-dev/grape-template</code>.</li>
+<li>Feishu groups: organisations running Grape can give feedback directly in their bound group.</li>
+</ul>
+<h2 id="15-faq">15. FAQ</h2>
+<ul>
+<li><strong>Why didn't my MR make it into main?</strong> — The target branch should be the current <code>weekly-0X</code>; it is merged back on Friday.</li>
+<li><strong>What about work started after Friday?</strong> — Branch <code>weekly-02</code> off the new main next Monday; this week's release is unaffected.</li>
+<li><strong>I wrote code but never claimed an issue?</strong> — Add it to the MR description; it will be settled during review.</li>
+<li><strong>Feeling stuck?</strong> — Comment on the issue/MR and @ a maintainer; don't go it alone.</li>
+</ul>
+<h2 id="16-newcomer-path-good-first-issue">16. Newcomer path (good first issue)</h2>
+<ol>
+<li>Look for issues labelled <code>good-first-issue</code> (usually docs, missing tests, small tools, edge cases).</li>
+<li>You can contribute without touching code: see [§17.4].</li>
+<li>Start small: one docs/test/tool MR is enough to get a feel for the collaboration.</li>
+</ol>
+<h2 id="17-contributor-notes">17. Contributor notes</h2>
+<h3 id="171-sign-off-dco">17.1 Sign-off (DCO)</h3>
+<p>We follow the <strong>Developer Certificate of Origin (DCO)</strong> model: every commit carries <code>Signed-off-by: &lt;name&gt; &lt;email&gt;</code> (<code>git commit -s</code>), which states that you confirm the contribution is your own work or that you have the right to contribute it under the project license (MIT). Maintainers verify that every commit in an MR is signed off.</p>
+<h3 id="172-copyright-and-license">17.2 Copyright and license</h3>
+<p>The code follows this repository's <code>LICENSE</code> (MIT). Contributing means agreeing to distribute it under that license.</p>
+<h3 id="173-consistency-guidance">17.3 Consistency guidance</h3>
+<ul>
+<li>New documentation should be bilingual or at least in Chinese; keep terminology aligned with the README (Skill / Agent / Pipeline, etc.).</li>
+<li>Design documents live in <code>docs/</code> (named <code>xxx-design.md</code>); read the relevant one before touching a large module.</li>
+</ul>
+<h3 id="174-contributing-without-writing-code">17.4 Contributing without writing code</h3>
+<ul>
+<li><strong>Documentation</strong>: improve the README, extend or correct design docs and comments.</li>
+<li><strong>Skills</strong>: contribute new Skills to <code>grape-dev/grape-skills</code> (<code>skills/&lt;agent_type&gt;/&lt;skill&gt;/</code>, Markdown only — no backend changes needed). This is the project's "low barrier, high value" direction.</li>
+<li><strong>Project templates</strong>: add one-click templates to <code>configs/project-templates.json</code>.</li>
+<li><strong>Bug reports</strong>: a clear reproduction plus logs (see §3).</li>
+<li><strong>Test cases</strong>: add cases covering edge scenarios (raising coverage is a direct contribution).</li>
+<li><strong>Community</strong>: answer questions, write tutorials, maintain non-code assets.</li>
+</ul>
+<hr>
+<p>Questions? Open an issue or ask directly in the Feishu group. We look forward to your contribution — welcome to the Grape community.</p>
+</body></html>
