@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/api/static/img/grape-logo.jpg" alt="Grape" width="240">
+  <img src="assets/grape-logo.jpg" alt="Grape" width="140">
 
   <h1>Grape</h1>
 
@@ -11,8 +11,10 @@
 
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/github/license/grape-dev/grape?color=blue" alt="License: MIT"></a>
-    <a href="https://github.com/grape-dev/grape/releases"><img src="https://img.shields.io/github/v/release/grape-dev/grape?include_prereleases&sort=semver" alt="Release"></a>
-    <a href="https://github.com/grape-dev/grape/actions/workflows/windows-smoke.yml"><img src="https://img.shields.io/github/actions/workflow/status/grape-dev/grape/windows-smoke.yml?branch=main&label=CI" alt="CI"></a>
+    <a href="https://github.com/grape-dev/grape/tree/main"><img src="https://img.shields.io/badge/branch-main-blue" alt="main"></a>
+    <a href="https://www.grapedev.cn/"><img src="https://img.shields.io/badge/%E5%AE%98%E7%BD%91-grapedev.cn-blue" alt="官网"></a>
+    <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+">
+    <img src="https://img.shields.io/badge/node.js-18%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 18+">
     <img src="https://img.shields.io/github/stars/grape-dev/grape?style=social" alt="Stars">
     <a href="README.md"><img src="https://img.shields.io/badge/README-English-blue" alt="English"></a>
   </p>
@@ -30,17 +32,7 @@
   <sub>VOD Agent → Issue Agent → Coding Agent → QA Agent → SRE Agent</sub>
 </div>
 
-```mermaid
-flowchart LR
-  I["Issue / PR 事件"] --> V["VOD Agent<br/>声音采集 → 洞察"]
-  V --> S["Issue Agent<br/>分诊 → 分派"]
-  S --> C["Coding Agent<br/>实现 → PR"]
-  C --> Q["QA Agent<br/>评审 → 测试"]
-  Q --> R["SRE Agent<br/>构建 → 部署"]
-  R --> D["交付完成"]
-```
-
-> `assets/pipeline-flow.gif`（流水线动画）尚未入库，上方图示在所有平台都能正常渲染。
+<img src="assets/pipeline-flow-zh.gif" alt="Issue 在 VOD → Issue → Coding → QA → SRE 之间自动流转" width="100%">
 
 ---
 
@@ -49,8 +41,8 @@ flowchart LR
 - [为什么需要 Grape](#为什么需要-grape) · [核心价值](#核心价值) · [Grape 是什么](#grape-是什么)
 - [架构](#架构) · [核心能力](#核心能力) · [开箱场景](#开箱场景)
 - [快速安装](#快速安装) · [让你的 AI Agent 自己装](#让你的-ai-agent-自己装) · [上手 10 分钟](#上手-10-分钟)
-- [部署](#部署) · [配置](#配置) · [文档与示例](#文档与示例)
-- [路线图](#路线图) · [参与贡献](#参与贡献) · [社群与反馈](#社群与反馈)
+- [部署](#部署) · [数据库](#数据库) · [配置](#配置) · [文档与示例](#文档与示例)
+- [参与贡献](#参与贡献) · [社群与反馈](#社群与反馈)
 - [安全](#安全) · [许可](#许可)
 
 ---
@@ -89,35 +81,7 @@ Grape 是一个多智能体 DevOps 平台：AI Agent 之间自主协作，接管
 
 ## 架构
 
-```mermaid
-flowchart LR
-  subgraph E["入口层"]
-    A1[GitCode Webhook]
-    A2[GitHub Webhook]
-    A3[飞书长连接]
-    A4[WebUI / Grape CLI]
-  end
-  subgraph O["编排层"]
-    B1[Agent 定义]
-    B2[Agent x Skill 映射]
-    B3[A2A 交接]
-    B4[任务中心]
-  end
-  subgraph X["引擎层（可插拔）"]
-    C1[opencode]
-    C2[codearts]
-    C3[hermes]
-    C4[codex]
-    C5[dsh]
-    C6[hwcloud]
-  end
-  subgraph I["隔离层"]
-    D1[Worker 节点]
-    D2[按 Issue 划分工作区]
-    D3[bwrap 沙箱]
-  end
-  E --> O --> X --> I --> F["交付层：构建 / 部署 / 监控 / 发布"]
-```
+<img src="assets/architecture-zh.svg" alt="Grape 架构：入口层 → 编排层 → 引擎层 → 隔离层 → 交付层" width="100%">
 
 | 层 | 组件 | 职责 |
 |-------|-----------|----------------|
@@ -308,11 +272,21 @@ pip install codearts-cli      # 基于 Python
 ```
 </details>
 
-### 必做的三项配置
+### 零配置即可体验
 
-以下文件在真实部署里都不是可选项，且都在 gitignore 中。
+上面两种启动方式（Docker 或源码，见「源码本地运行」）**都不需要任何 `configs/` 配置**——克隆下来直接启动就能用。启动后在 WebUI 用**用户名 + 密码注册登录**即可，本地体验完全不需要 OAuth：
 
-**1. 对外基址** —— `configs/server-config.json`
+- 未配置邮箱服务时，注册会自动跳过邮箱验证码（邮箱栏填个占位地址即可，不做格式与真实性校验），注册成功即已登录；
+- 未配置 GitCode / GitHub OAuth 时，登录页会提示"请使用用户名密码注册登录"，第三方登录按钮置灰但本地账号照常可用；
+- 项目模板也不用你操心：`examples/` 克隆下来只有一份 README，**首次启动时平台会自动从 [grape-template](https://github.com/grape-dev/grape-template) 拉取模板库**（启动日志里的 `Templates: ... verified OK` 即为同步完成）。
+
+要跑通完整的流水线（Issue → Coding → PR → 部署），再装一个执行引擎即可：`npm install -g opencode`。
+
+### 生产部署前的三项配置
+
+本地体验跑通后，要对外服务（OAuth 登录、仓库托管、飞书）时，以下文件才真正需要。都在 gitignore 中。
+
+**1. 对外基址** —— `configs/server-config.json`（本地体验可跳过）
 
 ```bash
 cp configs/server-config.example.json configs/server-config.json
@@ -325,9 +299,9 @@ cp configs/server-config.example.json configs/server-config.json
 }
 ```
 
-不配置时服务回落到 `http://localhost:3000`：OAuth 回调指向本机，GitCode/GitHub 无法回访，登录与托管会直接失败。启动日志与 `GET /api/health` 会显式给出 `server_base_url_configured=false` 告警。
+本地单机体验不用配：服务会回落到 `http://localhost:3000`，而你就是从这台机器访问，没有任何回调问题。一旦要给别人访问或启用 OAuth 登录，就必须配——否则 OAuth 回调指向本机，GitCode/GitHub 无法回访，登录与托管都会失败。启动日志与 `GET /api/health` 会显式给出 `server_base_url_configured=false` 告警。
 
-**2. OAuth 应用凭据** —— `configs/oauth-providers.json`
+**2. OAuth 应用凭据（可选）** —— `configs/oauth-providers.json`
 
 ```bash
 cp configs/oauth-providers.example.json configs/oauth-providers.json
@@ -356,9 +330,11 @@ cp configs/oauth-providers.example.json configs/oauth-providers.json
 }
 ```
 
-`configs/oauth-providers.json` 是 OAuth 凭据的唯一权威文件 —— 启动时以幂等方式同步进 DB。这里的 `redirect_uri` 必须与 OAuth App 中登记的回调地址完全一致。凭据写错文件或字段留空，会让 `/api/auth/login/{provider}` 返回 400 `not_configured`。（`configs/global-bot-token.json` 中的旧 OAuth 字段仍兼容读取，新部署请用 `oauth-providers.json`。）
+`configs/oauth-providers.json` 只是首启时的**种子**：启动时会把它幂等地导入数据库，而运行时一律从 DB 读，**DB 才是权威源**——所以之后要在管理台「配置中心 → 平台凭据」里改，改文件不会覆盖已有值。这里的 `redirect_uri` 必须与 OAuth App 中登记的回调地址完全一致。凭据写错文件或字段留空，会让 `/api/auth/login/{provider}` 返回 400 `not_configured`。（`configs/global-bot-token.json` 中的旧 OAuth 字段仍兼容读取，新部署请用 `oauth-providers.json`。）
 
-**3. 机器人凭据** —— `configs/global-bot-token.json`
+**不配这一项会怎样？** 只是失去"用 GitCode / GitHub 账号登录"和托管仓库的能力，本地账号登录、场景、技能、流水线全都照常可用。真要用 OAuth 时，也可以在启动后进管理台 `http://<主机>/admin` 填 client_id / client_secret，不必回头改这份文件。
+
+**3. 机器人凭据（接入 GitCode / 飞书 时才需要）** —— `configs/global-bot-token.json`
 
 ```bash
 cp configs/global-bot-token.example.json configs/global-bot-token.json
@@ -383,33 +359,33 @@ python scripts/doctor.py     # 检查 Python/Node/Git、引擎 CLI 与配置文�
 把下面这段直接发给你常用的编码 Agent（Claude Code / Codex / Cursor / opencode …），它会自己完成安装：
 
 ```text
-请从 https://github.com/grape-dev/grape 安装 Grape（AI Native DevOps 平台）：
+请从 https://github.com/grape-dev/grape 安装 Grape（AI Native DevOps 平台）并跑起来：
 
   git clone https://github.com/grape-dev/grape.git && cd grape
   python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-local.txt
   cp .env.example .env && mkdir -p data && python -m src.api.run --dev
 
-然后：按 .example 生成 configs/server-config.json（对外基址）与 configs/oauth-providers.json（OAuth 凭据），
-安装一个引擎 CLI（npm install -g opencode）并运行 scripts/doctor.py，
-验证 GET http://localhost:3000/api/health。检查脚本见 CONTRIBUTING.md。
-每一步都要汇报结果；若失败请贴出确切命令与错误输出。
+这是本地体验模式，不需要配置 OAuth、邮箱或数据库；请再装一个引擎 CLI（npm install -g opencode），
+然后运行 scripts/doctor.py，并验证 GET http://localhost:3000/api/health 返回 200。
+启动后到 http://localhost:3000 用"注册账号"创建本地用户名密码账号（无邮件服务时会跳过验证码）。
+每一步都要汇报结果；若失败请贴出确切命令与错误输出。仓库约定见 CONTRIBUTING.md。
 ```
-
-> 若你想接入的是**远程执行节点（Worker）**，请在你的 Grape 实例的 Workers 页生成令牌，再按页面给出的安装命令执行。
 
 ---
 
 ## 上手 10 分钟
 
-服务起来只是第一步，下面才是"它真的能跑"的样子：
+服务起来只是第一步，下面才是"它真的能跑"的样子。**默认走本地账号，全程不需要 OAuth**。
 
-1. **登录** —— 打开 WebUI（`http://<主机>/`），用 GitCode 登录。账号必须在 `configs/login-whitelist.json` 里；登录成功即证明 `server_base_url` 与 OAuth 凭据都配对了。
-2. **创建项目** —— 从 `examples/` 里挑一个模板，或托管已有的 Git 仓库，并选一个场景（见[开箱场景](#开箱场景)）。托管会自动把 Grape 的 webhook 写进仓库。
+1. **注册本地账号并登录** —— 打开 `http://<主机>/`，点「注册账号」，用用户名 + 密码建号即可（没有配邮件服务时会自动跳过邮箱验证码，直接注册成功）。登录成功就说明服务是通的。想用 GitCode / GitHub 登录，看第 6 步。
+2. **创建项目** —— 从 `examples/` 里挑一个模板，或托管已有的 Git 仓库，并选一个场景（见[开箱场景](#开箱场景)）。托管仓库需要先配好平台凭据（第 6 步）；纯本地体验也可直接建空项目试用场景。
 3. **看初始化** —— Grape 会异步分析项目并开出一个体验/探索 Issue。这个 Issue 端到端跑完，就是真正的冒烟验收。
-4. **绑定飞书（可选）** —— 添加机器人并确认 GitCode ↔ 飞书身份映射，之后就能在群里驱动流水线。
-5. **看流水线视图** —— 每一次 Agent 交接、用的技能、耗时与结论都在 Pipeline 页。某一跳失败，原因就在那里，不用去翻日志文件。
+4. **看流水线视图** —— 每一次 Agent 交接、用的技能、耗时与结论都在 Pipeline 页。某一跳失败，原因就在那里，不用去翻日志文件。
+5. **绑定飞书（可选）** —— 添加机器人并确认 GitCode ↔ 飞书身份映射，之后就能在群里驱动流水线。
+6. **要用第三方登录 / 托管仓库时，再配 OAuth（可选）** —— 进管理台 `http://<主机>/admin`（跟用户界面分开登录，首次部署的账号是 `admin` / `admin123`，启动前设 `GRAPE_ADMIN_PASSWORD` 可改成别的，首次登录会提示改密）。「配置中心 → 平台凭据」里填 GitCode 的 OAuth client_id / client_secret、bot token、webhook 地址，**保存即生效**——它写进数据库，DB 是权威源。白名单在「用户管理 → OAuth 登录白名单」，**默认关闭**（表为空时即使开着也放行），要收紧就在这一页加用户名，不用碰 `configs/login-whitelist.json`（那份文件只在首次启动、表为空时导入一次）。
+   唯一管不到的是 OAuth **回调地址**：它来自 `configs/server-config.json` 的 `server_base_url` / `webhook_url`，必须与 OAuth App 登记的一致。
 
-> 第 1 步若返回 400，几乎都是 `configs/oauth-providers.json`（字段不匹配）或 `configs/server-config.json`（还指向 localhost）—— 先查这两处。
+> 登录报 400 `not_configured` 只有在**用了第三方登录**时才出现——那时去管理台「平台凭据」看 client_id / secret 是否为空；回调报地址不匹配，则是 `configs/server-config.json` 还指向 localhost。白名单拦人是被拒绝而非 400，去管理台看开关和名单。本地账号登录与这三者都无关。
 
 ---
 
@@ -422,17 +398,64 @@ python -m src.api.run --dev    # 开发：单端口 3000，热加载
 
 nginx 反向代理 / systemd / Docker 等生产部署示例见 `docs/`（先读 `docs/DOCUMENTATION-GUIDE.md`），compose 文件与 `nginx-grape.conf` 在仓库根目录，告警规则在 `deploy/alerts.yml`。
 
+### 数据库
+
+**默认 SQLite，什么都不用装** —— 首次启动自动建表，库文件是 `data/sessions.db`（`DEVOPS_DB_PATH` 可改路径）；Docker 部署时它落在 `grape-data` 卷里，`docker compose down -v` 会把卷一起删掉，状态全丢。
+
+后端取值顺序：环境变量 `DEVOPS_DB_BACKEND` > `configs/db-backend.json` 的 `backend` 字段 > 默认 `sqlite`（重启生效）。
+
+生产建议切 **MySQL 8.x**，三步：
+
+```bash
+# 1. 装驱动（requirements.txt 已含；最小依赖 requirements-local.txt 不含）
+pip install pymysql DBUtils
+
+# 2. 建库 —— 程序只管建表，不管建库；字符集必须 utf8mb4，否则中文与 emoji 乱码
+mysql -h<host> -u<user> -p -e "CREATE DATABASE IF NOT EXISTS grape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+```
+
+```json
+// 3. configs/db-backend.json（复制自 db-backend.example.json）
+{
+  "backend": "mysql",
+  "mysql": {
+    "host": "<db-host>",
+    "port": 3306,
+    "user": "<user>",
+    "password": "<password>",
+    "database": "grape_db"
+  }
+}
+```
+
+环境变量 `DEVOPS_DB_HOST` / `DEVOPS_DB_PORT` / `DEVOPS_DB_USER` / `DEVOPS_DB_PASSWORD` / `DEVOPS_DB_NAME` 优先于该文件（容器与集群推荐走环境变量），也可用一条连接串 `DEVOPS_DB_URL=mysql://<user>:<password>@<host>:3306/grape_db`；未配的字段有默认值：host `127.0.0.1`、port `3306`、user `grape`、database `grape_db`。
+
+**不用手工建表，也不用跑迁移**：启动时 `CREATE TABLE IF NOT EXISTS` 建表 + 幂等 `ALTER` 迁移；SQLite 会在迁移前把旧库备份到 `data/backups/`（默认保留最近 5 份，`DB_BACKUP_KEEP` 可调）。验证：`curl -fsS http://127.0.0.1:3000/api/health`，启动日志出现 `MySQLCompatDB: connection pool initialized (min=2, max_cached=16, max_conn=32)`。
+
+<details markdown="1">
+<summary>生产细节与常见故障</summary>
+
+- 数据库账号需要该库的 `CREATE` / `ALTER` / `INDEX` 权限 —— 建表与迁移都在启动时自动做。
+- 连接池参数用环境变量调：`DB_POOL_MIN`(2) / `DB_POOL_MAX_CACHED`(16) / `DB_POOL_MAX_CONNECTIONS`(32)；出问题可设 `DB_POOL_DISABLED=1` 回到每线程裸连接。
+- MySQL 8 默认 `caching_sha2_password`：`pymysql` 配合 `cryptography`（随 `python-jose[cryptography]` 已在依赖里）即可握手；若仍失败，改用 `mysql_native_password` 建账号。
+- 管理台的精选排序另读一个 admin 库（默认 `grape_admin_db`，`ADMIN_DB_*` 可覆盖）：连不上会静默降级，不影响主流程。
+- `docker-compose.yml` 只起应用、**不含 MySQL 服务**；Docker + MySQL 要把配置指向外部实例（`./configs` 已挂载进容器，改完重启容器生效）。
+- 切换后端不会自动搬数据：SQLite 上的历史数据要自行迁移（仓库只带 `scripts/export_mysql_to_sqlite.py` 这条 MySQL → SQLite 的反向导出）。
+- 故障对照：`ModuleNotFoundError: pymysql` → 驱动没装；`Access denied` → 账号、授权或库名不对；中文乱码 → 库不是 `utf8mb4`；重启后数据"消失" → 仍在 SQLite 且 `grape-data` 卷被 `down -v` 删了。
+
+</details>
+
 ### 配置
 
 `拷贝` = 不在本仓，首次启动前从同名 `.example.json` 拷入。`同步` = 部署时由同步脚本生成。`随仓` = 本仓版本受控。
 
 | 文件 | 来源 | 说明 |
 |------|--------|-------------|
-| `configs/server-config.json` | 拷贝 | **必需。** 对外基址（`server_base_url` / `webhook_url`），不配则 OAuth 回调指向 localhost |
-| `configs/oauth-providers.json` | 拷贝 | **必需。** GitCode / GitHub 的 OAuth 应用凭据，须与 OAuth App 登记的回调地址完全一致 |
+| `configs/server-config.json` | 拷贝 | 本地体验可跳过；对外服务时必配。对外基址（`server_base_url` / `webhook_url`），不配则 OAuth 回调指向 localhost |
+| `configs/oauth-providers.json` | 拷贝 | 可选。GitCode / GitHub 的 OAuth 凭据种子（要用第三方登录或托管仓库才需要），启动时导入 DB；之后在管理台「平台凭据」维护。`redirect_uri` 须与 OAuth App 登记的回调地址一致 |
 | `configs/global-bot-token.json` | 拷贝 | 全局机器人令牌 + 旧版 OAuth 字段 |
-| `configs/login-whitelist.json` | 拷贝 | GitCode 登录白名单 |
-| `configs/db-backend.json` | 拷贝 | 数据库后端（默认 SQLite，生产可用 MySQL / OBS） |
+| `configs/login-whitelist.json` | 拷贝 | 可选。GitCode 登录白名单种子，仅在首次启动且表为空时导入一次；之后由管理台「OAuth 登录白名单」维护 |
+| `configs/db-backend.json` | 拷贝 | 数据库后端（默认 SQLite，生产建议 MySQL 8.x —— 详见下文「数据库」） |
 | `configs/agent-description.json` | 随仓 | Agent 类型种子（事件订阅、默认引擎） |
 | `configs/agent-skill-mapping.json` | 随仓 | 研发场景 → Agent × Skill 映射 |
 | `configs/engine-selection.json` | 随仓 | 哪个 Agent 用哪个引擎；未配置时不会静默回落 `opencode` |
@@ -448,24 +471,6 @@ nginx 反向代理 / systemd / Docker 等生产部署示例见 `docs/`（先读 
 | `help/usage/`、`help/reference/` | 使用走查与事件映射参考 |
 | `docs/` | 设计、评审与排障文档（请先读 `docs/DOCUMENTATION-GUIDE.md`） |
 | `examples/` | 项目模板库，部署时由 `scripts/sync_templates.sh` 从 [grape-template](https://github.com/grape-dev/grape-template) 铺入 —— `hello-*` 起手项目与完整应用（snake-game、alien-invasion、hello-blog-sys …）。仓库本身只带这份注册表的 README |
-
----
-
-## 路线图
-
-| 事项 | 状态 | 说明 |
-|---|---|---|
-| 沙箱加固（默认可开、收紧白名单） | 计划中 | 相关讨论见 `docs/` |
-| Issue → PR 时延的一等支持 | 计划中 | 埋点 `issue_created` / `pr_opened` 时间戳，以便发布真实中位数 |
-| 更多执行引擎 | 进行中 | 现支持 opencode / codearts / hermes / codex / dsh / hwcloud |
-| 预检覆盖全部引擎 | 计划中 | `scripts/doctor.py` 目前只探测 `opencode` / `codearts` |
-| 企业微信 / 钉钉通道 | 计划中 | `src/im/base.py` 通道接口已就位，当前仅实装飞书 |
-| 场景自动接续 | 计划中 | 场景中一段流水线完成后自动交接下一段 |
-| 更多模板与场景 | 进行中 | 通过 `grape-template` / `grape-skills` 共建 |
-| 文档与上手指引 | 进行中 | 示例、走查、国际化 |
-| GitCode / Gitee 镜像体验 | 计划中 | 面向 GitHub 访问受限的用户 |
-
-想让某项进入路线图？提个 Issue 就行 —— 路线图由社区共同塑造。
 
 ---
 

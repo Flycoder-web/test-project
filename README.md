@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/api/static/img/grape-logo.jpg" alt="Grape" width="240">
+  <img src="assets/grape-logo.jpg" alt="Grape" width="140">
 
   <h1>Grape</h1>
 
@@ -11,8 +11,10 @@
 
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/github/license/grape-dev/grape?color=blue" alt="License: MIT"></a>
-    <a href="https://github.com/grape-dev/grape/releases"><img src="https://img.shields.io/github/v/release/grape-dev/grape?include_prereleases&sort=semver" alt="Release"></a>
-    <a href="https://github.com/grape-dev/grape/actions/workflows/windows-smoke.yml"><img src="https://img.shields.io/github/actions/workflow/status/grape-dev/grape/windows-smoke.yml?branch=main&label=CI" alt="CI"></a>
+    <a href="https://github.com/grape-dev/grape/tree/main"><img src="https://img.shields.io/badge/branch-main-blue" alt="main"></a>
+    <a href="https://www.grapedev.cn/"><img src="https://img.shields.io/badge/website-grapedev.cn-blue" alt="Website"></a>
+    <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+">
+    <img src="https://img.shields.io/badge/node.js-18%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 18+">
     <img src="https://img.shields.io/github/stars/grape-dev/grape?style=social" alt="Stars">
     <a href="README.zh.md"><img src="https://img.shields.io/badge/README-中文-blue" alt="中文"></a>
   </p>
@@ -30,17 +32,7 @@
   <sub>VOD Agent → Issue Agent → Coding Agent → QA Agent → SRE Agent</sub>
 </div>
 
-```mermaid
-flowchart LR
-  I["Issue / PR event"] --> V["VOD Agent<br/>feedback → insights"]
-  V --> S["Issue Agent<br/>triage → assign"]
-  S --> C["Coding Agent<br/>implement → PR"]
-  C --> Q["QA Agent<br/>review → test"]
-  Q --> R["SRE Agent<br/>build → deploy"]
-  R --> D["Delivered"]
-```
-
-> `assets/pipeline-flow.gif` (the animated walkthrough) is not committed yet — the diagram above renders everywhere in the meantime.
+<img src="assets/pipeline-flow.gif" alt="Issues flow through VOD → Issue → Coding → QA → SRE automatically" width="100%">
 
 ---
 
@@ -49,8 +41,8 @@ flowchart LR
 - [Why Grape](#why-grape) · [Core Values](#core-values) · [What is Grape](#what-is-grape)
 - [Architecture](#architecture) · [Core Capabilities](#core-capabilities) · [Scenarios](#scenarios)
 - [Quick Install](#quick-install) · [Install with your AI Agent](#install-with-your-ai-agent) · [First 10 Minutes](#first-10-minutes)
-- [Deployment](#deployment) · [Configuration](#configuration) · [Docs & Examples](#docs--examples)
-- [Roadmap](#roadmap) · [Contributing](#contributing) · [Community & Feedback](#community--feedback)
+- [Deployment](#deployment) · [Database](#database) · [Configuration](#configuration) · [Docs & Examples](#docs--examples)
+- [Contributing](#contributing) · [Community & Feedback](#community--feedback)
 - [Security](#security) · [License](#license)
 
 ---
@@ -89,35 +81,7 @@ Grape is a Multi-Agent DevOps platform where AI Agents autonomously collaborate 
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  subgraph E["Entry"]
-    A1[GitCode Webhook]
-    A2[GitHub Webhook]
-    A3[Feishu Long Connection]
-    A4[WebUI / Grape CLI]
-  end
-  subgraph O["Orchestration"]
-    B1[Agent definitions]
-    B2[Agent x Skill mapping]
-    B3[A2A handoff]
-    B4[Task Center]
-  end
-  subgraph X["Engine (pluggable)"]
-    C1[opencode]
-    C2[codearts]
-    C3[hermes]
-    C4[codex]
-    C5[dsh]
-    C6[hwcloud]
-  end
-  subgraph I["Isolation"]
-    D1[Worker nodes]
-    D2[Workspace per issue]
-    D3[bwrap sandbox]
-  end
-  E --> O --> X --> I --> F["Delivery: build / deploy / monitor / release"]
-```
+<img src="assets/architecture.svg" alt="Grape architecture: ingress → orchestration → engines → isolation → delivery" width="100%">
 
 | Layer | Components | Responsibility |
 |-------|-----------|----------------|
@@ -308,11 +272,21 @@ pip install codearts-cli      # Python based
 ```
 </details>
 
-### Required configuration
+### Zero configuration to try it
 
-Two files **must** be created before OAuth login or repo hosting will work. Neither is optional in a real deployment, and both are gitignored.
+Either start path above (Docker or source — see "Local run (from source)") needs **no `configs/` setup at all**: clone, start, done. Then **sign up with a username and password** right in the WebUI — no OAuth needed for local use:
 
-**1. Public base URL** — `configs/server-config.json`
+- With no email service configured, registration skips the email verification code (put any placeholder in the email field — it is not validated), and you are signed in as soon as the account is created;
+- With no GitCode / GitHub OAuth configured, the login page says "register and sign in with username + password"; the third-party buttons are greyed out but local accounts work normally;
+- Project templates take care of themselves: `examples/` ships with only a README, and **on first start the platform pulls the template library from [grape-template](https://github.com/grape-dev/grape-template)** (watch for `Templates: ... verified OK` in the startup log).
+
+To exercise the full pipeline (Issue → Coding → PR → deploy), install one execution engine: `npm install -g opencode`.
+
+### Configuration needed before production
+
+Once you want to serve others (OAuth login, repo hosting, Feishu), these files matter. All are gitignored.
+
+**1. Public base URL** — `configs/server-config.json` (skippable for local use)
 
 ```bash
 cp configs/server-config.example.json configs/server-config.json
@@ -325,9 +299,9 @@ cp configs/server-config.example.json configs/server-config.json
 }
 ```
 
-Without it the service falls back to `http://localhost:3000`: OAuth callbacks point at the local machine, GitCode/GitHub cannot reach back, and login/hosting silently fails. Startup logs and `GET /api/health` surface an explicit `server_base_url_configured=false` warning.
+Skip it for a single-machine trial: the service falls back to `http://localhost:3000`, and since you are browsing from that same machine there is no callback problem at all. As soon as others need to reach it, or OAuth login is enabled, it becomes mandatory — otherwise OAuth callbacks point at the local machine, GitCode/GitHub cannot reach back, and login/hosting fail. Startup logs and `GET /api/health` surface an explicit `server_base_url_configured=false` warning.
 
-**2. OAuth app credentials** — `configs/oauth-providers.json`
+**2. OAuth app credentials (optional)** — `configs/oauth-providers.json`
 
 ```bash
 cp configs/oauth-providers.example.json configs/oauth-providers.json
@@ -356,9 +330,11 @@ cp configs/oauth-providers.example.json configs/oauth-providers.json
 }
 ```
 
-`configs/oauth-providers.json` is the authoritative OAuth credential file — it is synced into the DB on startup, idempotently. The `redirect_uri` here must exactly match the callback URL registered in the OAuth App. Credentials in the wrong file, or with empty fields, make `/api/auth/login/{provider}` return 400 `not_configured`. (Legacy OAuth fields in `configs/global-bot-token.json` are still read for backward compatibility; use `oauth-providers.json` for new setups.)
+`configs/oauth-providers.json` is only a **seed**: it is imported into the database idempotently on startup, and everything is read from the DB at runtime — **the DB is authoritative** — so change these later in the admin console (Config Center → Platform Credentials); editing the file will not overwrite existing values. The `redirect_uri` here must exactly match the callback URL registered in the OAuth App. Credentials in the wrong file, or with empty fields, make `/api/auth/login/{provider}` return 400 `not_configured`. (Legacy OAuth fields in `configs/global-bot-token.json` are still read for backward compatibility; use `oauth-providers.json` for new setups.)
 
-**3. Bot credentials** — `configs/global-bot-token.json`
+**What if you skip it?** You only lose "sign in with a GitCode / GitHub account" and repo hosting; local accounts, scenes, skills and the pipeline all work normally. And when you do want OAuth, you can fill client_id / client_secret in the admin console (`http://<host>/admin`) after startup instead of coming back to this file.
+
+**3. Bot credentials (only for GitCode / Feishu integration)** — `configs/global-bot-token.json`
 
 ```bash
 cp configs/global-bot-token.example.json configs/global-bot-token.json
@@ -383,33 +359,34 @@ The full staged checklist — every operation, its expected result, and the fix 
 Paste the following to your coding agent (Claude Code / Codex / Cursor / opencode …) and it will set everything up for you:
 
 ```text
-Install Grape (AI Native DevOps) from https://github.com/grape-dev/grape:
+Install Grape (AI Native DevOps) from https://github.com/grape-dev/grape and get it running:
 
   git clone https://github.com/grape-dev/grape.git && cd grape
   python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-local.txt
   cp .env.example .env && mkdir -p data && python -m src.api.run --dev
 
-Then: create configs/server-config.json and configs/oauth-providers.json from their .example files,
-install one engine CLI (npm install -g opencode), run scripts/doctor.py,
-and verify GET http://localhost:3000/api/health. Check commands are in CONTRIBUTING.md.
-Report each step's outcome; on failure show the exact command and error output.
+This is local-trial mode: no OAuth, email or database configuration needed. Also install one engine CLI
+(npm install -g opencode), run scripts/doctor.py, and verify GET http://localhost:3000/api/health returns 200.
+Then open http://localhost:3000 and use "Register" to create a local username/password account
+(with no mail service the verification code step is skipped).
+Report each step's outcome; on failure show the exact command and error output. Repo conventions: CONTRIBUTING.md.
 ```
-
-> For attaching a **Worker node** (remote execution machine) instead, generate a token in the Workers page of your Grape instance, then follow the installer printed there.
 
 ---
 
 ## First 10 Minutes
 
-Getting the service to start is step one. This is what "it's actually working" looks like:
+Getting the service to start is step one. This is what "it's actually working" looks like. **The default path is a local account — no OAuth anywhere in it.**
 
-1. **Log in** — open the WebUI (`http://<host>/`), sign in with GitCode. Accounts must be in `configs/login-whitelist.json`; a successful login proves `server_base_url` and the OAuth credentials are both correct.
-2. **Create a project** — choose a template from `examples/` or host an existing Git repo, and pick a scene (see [Scenarios](#scenarios)). Hosting writes the Grape webhook into the repo for you.
+1. **Register a local account and sign in** — open `http://<host>/`, click **Register**, and create an account with a username and password (with no mail service configured the email verification step is skipped and the account is created right away). Getting in proves the service is up. Want GitCode / GitHub login instead? See step 6.
+2. **Create a project** — choose a template from `examples/` or host an existing Git repo, and pick a scene (see [Scenarios](#scenarios)). Hosting needs platform credentials (step 6) first; for a pure local trial you can also create an empty project and try a scene on it.
 3. **Watch onboarding** — Grape analyses the project asynchronously and opens an experience/exploration Issue. That Issue going through the pipeline end-to-end is the real smoke test.
-4. **Bind Feishu (optional)** — add a bot, then confirm the GitCode ↔ Feishu identity mapping; from then on you can drive the pipeline from chat.
-5. **Check the pipeline view** — every agent hop, its skill, duration and conclusion is on the Pipeline page. If a hop failed, the reason is there, not in a log file.
+4. **Check the pipeline view** — every agent hop, its skill, duration and conclusion is on the Pipeline page. If a hop failed, the reason is there, not in a log file.
+5. **Bind Feishu (optional)** — add a bot, then confirm the GitCode ↔ Feishu identity mapping; from then on you can drive the pipeline from chat.
+6. **Only when you want third-party login / repo hosting: configure OAuth (optional)** — open the admin console at `http://<host>/admin` (separate login; the first deploy seeds `admin` / `admin123`, changeable via `GRAPE_ADMIN_PASSWORD` before first start, and you are prompted to change the password on first login). Under **Config Center → Platform Credentials** fill the GitCode OAuth client_id / client_secret, bot token and webhook URL; **saving takes effect immediately** because values go to the database, which is authoritative. The whitelist lives under **User Management → OAuth Login Whitelist**, **off by default** (and an empty list lets everyone in even when on); tighten it there rather than in `configs/login-whitelist.json` (imported once, on first start, only if the table is empty).
+   The one thing the console does not manage is the OAuth **callback URL**: it comes from `server_base_url` / `webhook_url` in `configs/server-config.json` and must match the OAuth App registration.
 
-> If step 1 fails with a 400, it is almost always `configs/oauth-providers.json` (field mismatch) or `configs/server-config.json` (still pointing at localhost) — check those two before anything else.
+> A 400 `not_configured` can only appear when you actually use a third-party login — then check **Platform Credentials** in the console for an empty client_id / secret. A callback URL mismatch means `configs/server-config.json` still points at localhost. A whitelist block is a rejection, not a 400 — check the toggle and list in the console. Local account login is unaffected by all three.
 
 ---
 
@@ -422,17 +399,64 @@ python -m src.api.run --dev    # Development: single port 3000, hot-reload
 
 Production deployment examples (nginx reverse proxy / systemd / Docker) live in `docs/` (see `docs/DOCUMENTATION-GUIDE.md`); the compose file and `nginx-grape.conf` are at the repo root. Alert rules ship in `deploy/alerts.yml`.
 
+### Database
+
+**SQLite by default — nothing to install.** Tables are created on first start, the database file is `data/sessions.db` (change the path with `DEVOPS_DB_PATH`); under Docker it lives in the `grape-data` volume, and `docker compose down -v` deletes that volume along with all state.
+
+Backend resolution order: `DEVOPS_DB_BACKEND` env var > `backend` field in `configs/db-backend.json` > `sqlite` (restart required).
+
+For production, switch to **MySQL 8.x** in three steps:
+
+```bash
+# 1. Install the driver (in requirements.txt; not in the minimal requirements-local.txt)
+pip install pymysql DBUtils
+
+# 2. Create the database — Grape creates tables, never the database itself; the charset must be utf8mb4 or CJK/emoji text breaks
+mysql -h<host> -u<user> -p -e "CREATE DATABASE IF NOT EXISTS grape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+```
+
+```json
+// 3. configs/db-backend.json (copy from db-backend.example.json)
+{
+  "backend": "mysql",
+  "mysql": {
+    "host": "<db-host>",
+    "port": 3306,
+    "user": "<user>",
+    "password": "<password>",
+    "database": "grape_db"
+  }
+}
+```
+
+The `DEVOPS_DB_HOST` / `DEVOPS_DB_PORT` / `DEVOPS_DB_USER` / `DEVOPS_DB_PASSWORD` / `DEVOPS_DB_NAME` env vars override that file (preferred for containers and clusters), or use a single URL: `DEVOPS_DB_URL=mysql://<user>:<password>@<host>:3306/grape_db`. Defaults for anything unset: host `127.0.0.1`, port `3306`, user `grape`, database `grape_db`.
+
+**No manual table creation, no migration runs**: startup issues `CREATE TABLE IF NOT EXISTS` plus idempotent `ALTER` migrations; for SQLite the old file is backed up to `data/backups/` before a migration (latest 5 kept, tunable via `DB_BACKUP_KEEP`). Verify with `curl -fsS http://127.0.0.1:3000/api/health` and the startup line `MySQLCompatDB: connection pool initialized (min=2, max_cached=16, max_conn=32)`.
+
+<details markdown="1">
+<summary>Production notes and common failures</summary>
+
+- The database account needs `CREATE` / `ALTER` / `INDEX` on that database — table creation and migrations run automatically at startup.
+- Pool sizing is env-driven: `DB_POOL_MIN` (2) / `DB_POOL_MAX_CACHED` (16) / `DB_POOL_MAX_CONNECTIONS` (32); `DB_POOL_DISABLED=1` falls back to the legacy per-thread connection.
+- MySQL 8 defaults to `caching_sha2_password`: `pymysql` with `cryptography` (already pulled in by `python-jose[cryptography]`) completes the handshake; if it still fails, create the account with `mysql_native_password`.
+- The admin console reads its featured-order list from a separate admin database (default `grape_admin_db`, overridable via `ADMIN_DB_*`): if unreachable it degrades silently and does not affect the main flow.
+- `docker-compose.yml` starts the app only, **no MySQL service**; for Docker + MySQL point the config at an external instance (`./configs` is mounted into the container — restart the container after editing).
+- Switching backends does not move data: existing SQLite data must be migrated by hand (the repo only ships `scripts/export_mysql_to_sqlite.py`, the MySQL → SQLite direction).
+- Failure cheat sheet: `ModuleNotFoundError: pymysql` → driver missing; `Access denied` → wrong account, grants or database name; garbled CJK text → database is not `utf8mb4`; data "disappears" after a restart → still on SQLite and the `grape-data` volume was removed by `down -v`.
+
+</details>
+
 ### Configuration
 
 `copy` = not in this repo, copy it from the matching `.example.json` before first start. `synced` = produced at deploy time by the sync scripts. `committed` = version-controlled here.
 
 | File | Source | Description |
 |------|--------|-------------|
-| `configs/server-config.json` | copy | **Required.** Public base URL (`server_base_url` / `webhook_url`); without it OAuth callbacks point at localhost |
-| `configs/oauth-providers.json` | copy | **Required.** OAuth app credentials for GitCode / GitHub. Must exactly match the callback URL registered in the OAuth App |
+| `configs/server-config.json` | copy | Skippable for a local trial; required when serving others. Public base URL (`server_base_url` / `webhook_url`); without it OAuth callbacks point at localhost |
+| `configs/oauth-providers.json` | copy | Optional — only needed for third-party login or repo hosting. Seeds the GitCode / GitHub OAuth credentials into the DB at startup; maintain them in the console (Platform Credentials) afterwards. `redirect_uri` must match the OAuth App exactly |
 | `configs/global-bot-token.json` | copy | Global bot token + legacy OAuth fields |
-| `configs/login-whitelist.json` | copy | GitCode login whitelist |
-| `configs/db-backend.json` | copy | Database backend (SQLite by default, MySQL / OBS for production) |
+| `configs/login-whitelist.json` | copy | Optional. Seed for the GitCode login whitelist — imported once on first start, only when the table is empty; the console (OAuth Login Whitelist) owns it afterwards |
+| `configs/db-backend.json` | copy | Database backend (SQLite by default; MySQL 8.x recommended for production — see Database below) |
 | `configs/agent-description.json` | committed | Agent type seeds (event subscriptions, default engine) |
 | `configs/agent-skill-mapping.json` | committed | Dev scenario → Agent × Skill mapping |
 | `configs/engine-selection.json` | committed | Which engine runs which agent; no silent fallback to `opencode` when unset |
@@ -448,24 +472,6 @@ Production deployment examples (nginx reverse proxy / systemd / Docker) live in 
 | `help/usage/`, `help/reference/` | Usage walkthroughs and event-mapping reference |
 | `docs/` | Design, review and debugging documents (see `docs/DOCUMENTATION-GUIDE.md` first) |
 | `examples/` | Project template library, populated at deploy time by `scripts/sync_templates.sh` from [grape-template](https://github.com/grape-dev/grape-template) — `hello-*` starters plus full apps (snake-game, alien-invasion, hello-blog-sys …). The repo itself ships only the registry README |
-
----
-
-## Roadmap
-
-| Item | Status | Notes |
-|---|---|---|
-| Sandbox hardening (on by default, tighter allowlists) | Planned | See the sandbox discussion in `docs/` |
-| First-class Issue → PR timings | Planned | Emit `issue_created` / `pr_opened` timestamps so a real median can be reported |
-| More execution engines | In progress | opencode / codearts / hermes / codex / dsh / hwcloud today |
-| Preflight covers every engine | Planned | `scripts/doctor.py` currently probes `opencode` / `codearts` only |
-| WeCom / DingTalk channels | Planned | The `src/im/base.py` channel interface is in place; only Feishu is wired today |
-| Scene auto-continuation | Planned | Automatic hand-off when one stage of a scene finishes |
-| More templates & scenarios | In progress | Contribute via `grape-template` / `grape-skills` |
-| Documentation & onboarding | In progress | Examples, walkthroughs, i18n |
-| GitCode / Gitee mirror experience | Planned | For users behind restricted GitHub access |
-
-Want something on this list? Open an Issue — the roadmap is community-shaped.
 
 ---
 
